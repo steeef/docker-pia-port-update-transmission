@@ -1,9 +1,10 @@
 FROM debian:stretch-slim
-Maintainer Stephen Price <stephen@stp5.net>
+MAINTAINER Stephen Price <stephen@stp5.net>
 
 RUN export DEBIAN_FRONTEND='noninteractive' && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
+      ca-certificates \
       curl \
       transmission-remote-cli \
       $(apt-get -s dist-upgrade|awk '/^Inst.*ecurity/ {print $2}') && \

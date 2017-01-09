@@ -1,11 +1,9 @@
-#! /bin/sh
+#!/bin/bash
 
 pia_username=${VPNUSER}
 pia_passwd=${VPNPASS}
 transmission_hostname=${TRANSMISSION_HOST}
 transmission_port=${TRANSMISSION_PORT}
-transmission_username=$(head -1 $TRANSMISSION_PASSWD_FILE)
-transmission_passwd=$(tail -1 $TRANSMISSION_PASSWD_FILE)
 local_vpn_ip=$(ip -o -4 addr show | grep tun0 | awk '{print $4}')
 pia_client_id_file=/data/pia_client_id
 port_assignment_url=https://www.privateinternetaccess.com/vpninfo/port_forward_assignment
@@ -17,6 +15,7 @@ port_assignment_url=https://www.privateinternetaccess.com/vpninfo/port_forward_a
 new_client_id() {
     head -n 100 /dev/urandom | md5sum | tr -d " -" | tee $pia_client_id_file
 }
+
 while [ 1 ]; do
   pia_client_id="$(cat $pia_client_id_file 2>/dev/null)"
   if [ -z ${pia_client_id} ]; then
