@@ -15,4 +15,8 @@ ENV VPNPASS password
 ENV TRANSMISSION_HOST transmission
 ENV TRANSMISSION_PORT 9091
 
-ENTRYPOINT ["/bin/bash"]
+COPY pia-update-port.sh /usr/bin/
+
+VOLUME /data
+
+ENTRYPOINT ["pia-update-port.sh"]
