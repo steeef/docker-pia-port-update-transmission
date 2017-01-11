@@ -51,12 +51,12 @@ echo "Got new port $new_port from PIA"
 #
 
 # get current listening port
-transmission_peer_port=$(transmission-remote-cli ${transmission_hostname}:${transmission_port} -si | grep Listenport | grep -oE '[0-9]+')
+transmission_peer_port=$(transmission-remote ${transmission_hostname}:${transmission_port} -si | grep Listenport | grep -oE '[0-9]+')
 if [ "$new_port" != "$transmission_peer_port" ]
   then
-    transmission-remote-cli ${transmission_hostname}:${transmission_port} -p "$new_port"
+    transmission-remote ${transmission_hostname}:${transmission_port} -p "$new_port"
     echo "Checking port..."
-    sleep 10 && transmission-remote-cli ${transmission_hostname}:${transmission_port} -pt
+    sleep 10 && transmission-remote ${transmission_hostname}:${transmission_port} -pt
   else
     echo "No action needed, port hasn't changed"
 fi
