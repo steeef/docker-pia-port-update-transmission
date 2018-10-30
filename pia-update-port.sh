@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -o errexit -o pipefail
-
 transmission_remote="transmission-remote ${TRANSMISSION_HOST}:${TRANSMISSION_PORT}"
 pia_client_id_file=/data/pia_client_id
 port_file=/data/pia_port
@@ -24,7 +22,7 @@ if [ -z "${pia_client_id}" ]; then
 fi
 
 # Get the port
-pia_response=$(curl -s -f -d "${port_assignment_url}/client_id=${pia_client_id}")
+pia_response=$(curl -s -f "${port_assignment_url}/client_id=${pia_client_id}")
 
 # Check for curl error (curl will fail on HTTP errors with -f flag)
 ret=$?
