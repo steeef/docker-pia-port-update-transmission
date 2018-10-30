@@ -1,62 +1,70 @@
 #!/bin/bash
 
-pia_username=${VPNUSER}
-pia_passwd=${VPNPASS}
-transmission_hostname=${TRANSMISSION_HOST}
-transmission_port=${TRANSMISSION_PORT}
-local_vpn_ip=$(/bin/ip -o -4 addr show | grep tun0 | awk '{print $4}')
-pia_client_id_file=/data/pia_client_id
-port_assignment_url=https://www.privateinternetaccess.com/vpninfo/port_forward_assignment
+set -o errexit -o pipefail
 
+transmission_remote="transmission-remote ${TRANSMISSION_HOST}:${TRANSMISSION_PORT}"
+pia_client_id_file=/data/pia_client_id
+port_file=/data/pia_port
+port_assignment_url="http://209.222.18.222:2000"
 #
 # First get a port from PIA
 #
 
 new_client_id() {
-    head -n 100 /dev/urandom | md5sum | tr -d " -" | tee $pia_client_id_file
+  head -n 100 /dev/urandom | sha256sum | tr -d " -"
 }
 
-pia_client_id="$(cat $pia_client_id_file 2>/dev/null)"
-if [ -z ${pia_client_id} ]; then
-    echo "Generating new client id for PIA"
-    pia_client_id=$(new_client_id)
+old_port="$(cat ${port_file} 2>/dev/null)"
+
+pia_client_id="$(cat ${pia_client_id_file} 2>/dev/null)"
+if [ -z "${pia_client_id}" ]; then
+  echo "Generating new client id for PIA"
+  pia_client_id=$(new_client_id)
+  echo "${pia_client_id}" > "${pia_client_id_file}"
 fi
 
 # Get the port
-pia_response=$(curl -s -f -d "user=$pia_username&pass=$pia_passwd&client_id=$pia_client_id&local_ip=$local_vpn_ip" $port_assignment_url)
+pia_response=$(curl -s -f -d "${port_assignment_url}/client_id=${pia_client_id}")
 
 # Check for curl error (curl will fail on HTTP errors with -f flag)
 ret=$?
 if [ $ret -ne 0 ]; then
-    echo "curl encountered an error looking up new port: $ret"
+  echo "curl encountered an error looking up new port: $ret"
 fi
 
 # Check for errors in PIA response
-error=$(echo $pia_response | grep -oE "\"error\".*\"")
-if [ ! -z "$error" ]; then
-    echo "PIA returned an error: $error"
-    exit
+if [ -z "${pia_response}" ]; then
+  echo "Port forwarding already enabled on this connection"
+  new_port="${old_port}"
+else
+  # Get new port, check if empty
+  new_port=$(echo "${pia_response}" | grep -oE "[0-9]+")
 fi
 
-# Get new port, check if empty
-new_port=$(echo $pia_response | grep -oE "[0-9]+")
-if [ -z "$new_port" ]; then
+if [ -z "${new_port}" ]; then
     echo "Could not find new port from PIA"
-    exit
+    exit 1
 fi
-echo "Got new port $new_port from PIA"
+echo "Got new port ${new_port} from PIA"
+echo "${new_port}" > "${port_file}"
 
 #
 # Now, set port in Transmission
 #
 
+
+# retry until transmission is running
+retries=0
+echo "Waiting on transmission to start."
+until ${transmission_remote} -st || (( retries++ >= 15 )); do
+  sleep 5
+done
 # get current listening port
-transmission_peer_port=$(transmission-remote ${transmission_hostname}:${transmission_port} -si | grep Listenport | grep -oE '[0-9]+')
-if [ "$new_port" != "$transmission_peer_port" ]
-  then
-    transmission-remote ${transmission_hostname}:${transmission_port} -p "$new_port"
-    echo "Checking port..."
-    sleep 10 && transmission-remote ${transmission_hostname}:${transmission_port} -pt
-  else
-    echo "No action needed, port hasn't changed"
+transmission_peer_port=$(${transmission_remote} -si \
+  | grep Listenport | grep -oE '[0-9]+')
+
+if [ "${new_port}" != "${transmission_peer_port}" ]; then
+  ${transmission_remote} -p "$new_port"
+else
+  echo "No action needed, port hasn't changed"
 fi
