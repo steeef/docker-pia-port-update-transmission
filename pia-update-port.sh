@@ -4,7 +4,7 @@ pia_username=${VPNUSER}
 pia_passwd=${VPNPASS}
 transmission_hostname=${TRANSMISSION_HOST}
 transmission_port=${TRANSMISSION_PORT}
-local_vpn_ip=$(ip -o -4 addr show | grep tun0 | awk '{print $4}')
+local_vpn_ip=$(/bin/ip -o -4 addr show | grep tun0 | awk '{print $4}')
 pia_client_id_file=/data/pia_client_id
 port_assignment_url=https://www.privateinternetaccess.com/vpninfo/port_forward_assignment
 

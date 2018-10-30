@@ -5,6 +5,7 @@ RUN export DEBIAN_FRONTEND='noninteractive' && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
       ca-certificates \
+      iproute2 \
       curl \
       transmission-cli \
       $(apt-get -s dist-upgrade|awk '/^Inst.*ecurity/ {print $2}') && \
