@@ -22,20 +22,20 @@ if [ -z "${pia_client_id}" ]; then
 fi
 
 # Get the port
-pia_response=$(curl -s -f "${port_assignment_url}/client_id=${pia_client_id}")
 
-# Check for curl error (curl will fail on HTTP errors with -f flag)
-ret=$?
-if [ $ret -ne 0 ]; then
-  echo "curl encountered an error looking up new port: $ret"
-fi
+# retry until port retrieved
+retries=0
+echo "Waiting until port retrieved."
+until pia_response=$(curl -s -f "${port_assignment_url}/client_id=${pia_client_id}") \
+  || (( retries++ >= 30 )); do
+  sleep 3
+done
 
 # Check for errors in PIA response
 if [ -z "${pia_response}" ]; then
   echo "Port forwarding already enabled on this connection"
   new_port="${old_port}"
 else
-  # Get new port, check if empty
   new_port=$(echo "${pia_response}" | grep -oE "[0-9]+")
 fi
 
